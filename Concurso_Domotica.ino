@@ -149,13 +149,16 @@ void imprimirStatus(EthernetClient &client){
 }
 
 void ejecuta(String& clave, String& valor){
-  int devicenumber = atoi(clave.charAt(3));
-  int estado = atoi(valor.charAt(5));
+  char charnumero = clave.charAt(3);
+  int numero = atoi(&charnumero);
+  char charestado[3];
+  valor.toCharArray(charestado,3);
+  int estado = atoi(charestado);
   if (clave.substring(0,3)=="rel"){
-    relevadores[devicenumber]=estado;
+    relevadores[numero]=estado;
   }
   else if (clave.substring(0,3)=="dim"){
-    dimmers[devicenumber]=estado
+    dimmers[numero]=estado;
   }
 }
 //this
