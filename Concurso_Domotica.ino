@@ -1,17 +1,18 @@
 #include <SPI.h>
-#include <EthernetBonjour.h>
 #include <Dhcp.h>
 #include <Ethernet.h>
 #include <EthernetClient.h>
 #include <EthernetServer.h>
 #include <util.h>
-
+#include <EthernetBonjour.h>
 
 //defines
 #define bufferMax 50
-#define nreles 3
-#define ndimms 2
-
+#define rele1  2
+#define rele2  3
+#define rele3  4
+#define dimm1  5
+#define dimm2  6
 
 //variables de configuración de interfaz ethernet
 byte mac[] = {0x90, 0xA2, 0xDA, 0x00, 0x58, 0xD3};
@@ -32,12 +33,17 @@ int relevador1 = 0;
 int relevador2 = 0;
 int dimmer1 = 0;
 int dimmer2 = 0;
-int relevadores[nreles];
-int dimmers[ndimms];
+int puertosrel[3]={rele1,rele2,rele3};
+int puertosdimm[2]={dimm1, dimm2};
+int valoresrel[3]={0,0,0};
+int valoresdimm[2]={0,0};
 
 void setup(){
   Serial.begin(9600);
   Serial.println("iniciando el programa");
+  for (int i=0; i<=2; i++)
+    pinMode(puertosrel[i], OUTPUT);
+  actualizaPuertos();
   if(Ethernet.begin(mac)==0){
     Serial.println("fallo al obtener direccion DHCP, asignando IP Local");
     Ethernet.begin(mac,ip,gateway,subnet);
@@ -50,7 +56,9 @@ void setup(){
                                    80,
                                    MDNSServiceTCP);    
 }
-
+///////////////////////////////////////////////////////
+///////////////////////////////////////////////////////
+///////////////////////////////////////////////////////
 void loop(){
   if ((millis() - Timer) >= 10000){//si ya pasaron mas de 10 segundos desde que se anuncio el servicio bonjour
     EthernetBonjour.run();
@@ -78,10 +86,10 @@ void loop(){
     client.stop();
   }
 }
-
-
-
-
+///////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
 void leePeticion(EthernetClient &client, String &buffer) //FUNCIÓN PARA ALMACENAR LA PETICIÓN DEL CLIENTE EN EL BUFFER
 {
   buffer = "";
@@ -112,8 +120,8 @@ while(client.available()){//verifico si hay algo por leer
     charanterior = nuevochar;     
   }
 }
-
-
+/////////////////////////////////////////////////
+////////////////////////////////////////////////
 String obtenerMetodo(String &buffer){//FUNCIÓN QUE DETERMINA EL TIPO DE PETICIÓN (SOLO SOPORTA GET Y POST, SI NO LA CONSIDERA INVÁLIDA)
   if (buffer.substring(0,3)=="GET"){
     return "GET";
@@ -123,7 +131,8 @@ String obtenerMetodo(String &buffer){//FUNCIÓN QUE DETERMINA EL TIPO DE PETICI�
     }
   else return "error";
 }
-
+/////////////////////////////////////////////////////
+////////////////////////////////////////////////////
 void parse(String &buffer, String &clave, String &valor){
     String query = "";
     int inicioquery;
@@ -135,32 +144,47 @@ void parse(String &buffer, String &clave, String &valor){
       valor = query.substring(igual+1);
     }
 }
-
+///////////////////////////////////////////////
+///////////////////////////////////////////////
 void imprimirStatus(EthernetClient &client){
-  client.println("Tipo = Modulo de luces");
-  client.print("Relevador1 = ");
-  client.println(relevador1);
-  client.print("Relevador2 = ");
-  client.println(relevador2);
-  client.print("Dimmer1 = ");
-  client.println(dimmer1);
-  client.print("Dimmer2 = ");
-  client.println(dimmer2);
+  for (int i=0; i<=2; i++){
+    client.print("Relevador");
+    client.print(i);
+    client.print(" = ");
+    client.println(valoresrel[i]);
+  }
+  for (int i=0; i<=1; i++){
+    client.print("Dimmer");
+    client.print(i);
+    client.print(" = ");
+    client.println(valoresdimm[i]);
+  }
 }
-
+////////////////////////////////////////////
+///////////////////////////////////////////
 void ejecuta(String& clave, String& valor){
   char charnumero = clave.charAt(3);
   int numero = atoi(&charnumero);
-  char charestado[3];
-  valor.toCharArray(charestado,3);
+  Serial.println(numero);/////prueba
+  char charestado[4];
+  valor.toCharArray(charestado,4);
   int estado = atoi(charestado);
+  Serial.println(estado);////prueba
   if (clave.substring(0,3)=="rel"){
-    relevadores[numero]=estado;
+    valoresrel[numero]=estado;
+    actualizaPuertos();
   }
   else if (clave.substring(0,3)=="dim"){
-    dimmers[numero]=estado;
+    valoresdimm[numero]=estado;
+    actualizaPuertos();
   }
 }
-//this
-//comentarioPrueba
+
+void actualizaPuertos(){
+  for (int i=0; i <= 2; i++)
+    digitalWrite(puertosrel[i], valoresrel[i]);
+  for (int i=0; i <= 1; i++){
+    analogWrite(puertosdimm[i], valoresdimm[i]);
+  }
+}
   
